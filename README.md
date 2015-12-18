@@ -9,3 +9,8 @@ the current state of all keyboard latches and locks.
 
 kbd-state-mon was forked from [ledmon](https://github.com/jgoerzen/ledmon).
 
+License
+-------
+
+GPLv3+
+
