@@ -30,6 +30,7 @@ Copyright (C) 2015 William Hatch
 
 static int xkb_event_base = 0;
 static int xkb_error_base = 0;
+static Bool onlyCurrentStateP = True;
 
 void displayState(Display *d, unsigned int latch, unsigned int lock) {
 
@@ -75,12 +76,27 @@ void displayState(Display *d, unsigned int latch, unsigned int lock) {
   fflush(stdout);
 }
 
-int main(void) {
+int main(int argc, char **argv) {
   Display *disp;
   int opcode;
   int maj = XkbMajorVersion;
   int min = XkbMinorVersion;
   XkbEvent ev;
+  XkbStateRec state;
+  int opt;
+
+
+  while ((opt = getopt (argc, argv, "w")) != -1) {
+    switch (opt) {
+    case 'w':
+      onlyCurrentStateP = False;
+      break;
+    default:
+      printf("Usage: %s [-w]\n", argv[0]);
+      printf("-w keep watching -- don't exit after getting the initial state\n");
+      return 0;
+    }
+  }
 
   /* Open Display */
   if ( !(disp = XOpenDisplay(NULL))) {
@@ -98,14 +114,22 @@ int main(void) {
     exit(1);
   }
 
+  // print initial status
+  XkbGetState(disp, XkbUseCoreKbd, &state);
+  displayState(disp, state.latched_mods, state.locked_mods);
+
+  if (onlyCurrentStateP){
+    exit(0);
+  }
+
+  // loop forever, printing status
+
   if (!XkbSelectEvents(disp, XkbUseCoreKbd, XkbStateNotifyMask, 
                        XkbStateNotifyMask)) {
     fprintf(stderr, "XkbSelectEvents\n");
     exit(1);
   }
 
-  // TODO - print initial status
-  
   while (1) {
     XNextEvent(disp, &ev.core);
     if (ev.type == xkb_event_base && ev.any.xkb_type == XkbStateNotify) {
