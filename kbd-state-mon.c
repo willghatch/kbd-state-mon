@@ -31,9 +31,15 @@ Copyright (C) 2015 William Hatch
 static int xkb_event_base = 0;
 static int xkb_error_base = 0;
 static Bool onlyCurrentStateP = True;
+static Bool showLocks = True;
+static Bool showLatches = True;
+static Bool showBaseMods = False;
 
-void displayState(Display *d, unsigned int latch, unsigned int lock) {
-
+void displayState(Display *d,
+                  unsigned int bmods,
+                  int latch,
+                  int lock
+                  ) {
   int shift = XkbKeysymToModifiers(d, XK_Shift_L);
   int caps = XkbKeysymToModifiers(d, XK_Caps_Lock);
   int l3 = XkbKeysymToModifiers(d, XK_ISO_Level3_Shift);
@@ -45,32 +51,48 @@ void displayState(Display *d, unsigned int latch, unsigned int lock) {
   int num_lock = XkbKeysymToModifiers(d, XK_Num_Lock);
   int scroll_lock = XkbKeysymToModifiers(d, XK_Scroll_Lock);
 
+  /* base mods */
+  if(showBaseMods){
+    if(bmods) printf("Mods: ");
+    if(bmods & shift) printf("Shift ");
+    if(bmods & caps) printf("Caps ");
+    if(bmods & l3) printf("L3 ");
+    if(bmods & l5) printf("L5 ");
+    if(bmods & control) printf("Ctl ");
+    if(bmods & alt) printf("Alt ");
+    if(bmods & super) printf("Sup ");
+    if(bmods & hyper) printf("Hyp ");
+    if(bmods & num_lock) printf("Num ");
+    if(bmods & scroll_lock) printf("Scroll ");
+  }
   /* latches */
-  if(latch) printf("Latch: ");
-  if(latch & shift) printf("Shift ");
-  if(latch & caps) printf("Caps ");
-  if(latch & l3) printf("L3 ");
-  if(latch & l5) printf("L5 ");
-  if(latch & control) printf("Ctl ");
-  if(latch & alt) printf("Alt ");
-  if(latch & super) printf("Sup ");
-  if(latch & hyper) printf("Hyp ");
-  if(latch & num_lock) printf("Num ");
-  if(latch & scroll_lock) printf("Scroll ");
-
-
+  if(showLatches){
+    if(latch) printf("Latch: ");
+    if(latch & shift) printf("Shift ");
+    if(latch & caps) printf("Caps ");
+    if(latch & l3) printf("L3 ");
+    if(latch & l5) printf("L5 ");
+    if(latch & control) printf("Ctl ");
+    if(latch & alt) printf("Alt ");
+    if(latch & super) printf("Sup ");
+    if(latch & hyper) printf("Hyp ");
+    if(latch & num_lock) printf("Num ");
+    if(latch & scroll_lock) printf("Scroll ");
+  }
   /* locks */
-  if(lock) printf("Lock: ");
-  if(lock & shift) printf("Shift ");
-  if(lock & caps) printf("Caps ");
-  if(lock & l3) printf("L3 ");
-  if(lock & l5) printf("L5 ");
-  if(lock & control) printf("Ctl ");
-  if(lock & alt) printf("Alt ");
-  if(lock & super) printf("Sup ");
-  if(lock & hyper) printf("Hyp ");
-  if(lock & num_lock) printf("Num ");
-  if(lock & scroll_lock) printf("Scroll ");
+  if(showLocks){
+    if(lock) printf("Lock: ");
+    if(lock & shift) printf("Shift ");
+    if(lock & caps) printf("Caps ");
+    if(lock & l3) printf("L3 ");
+    if(lock & l5) printf("L5 ");
+    if(lock & control) printf("Ctl ");
+    if(lock & alt) printf("Alt ");
+    if(lock & super) printf("Sup ");
+    if(lock & hyper) printf("Hyp ");
+    if(lock & num_lock) printf("Num ");
+    if(lock & scroll_lock) printf("Scroll ");
+  }
 
   printf("\n");
   fflush(stdout);
@@ -86,13 +108,17 @@ int main(int argc, char **argv) {
   int opt;
 
 
-  while ((opt = getopt (argc, argv, "w")) != -1) {
+  while ((opt = getopt (argc, argv, "bw")) != -1) {
     switch (opt) {
     case 'w':
       onlyCurrentStateP = False;
       break;
+    case 'b':
+      showBaseMods = True;
+      break;
     default:
-      printf("Usage: %s [-w]\n", argv[0]);
+      printf("Usage: %s [-bw]\n", argv[0]);
+      printf("-b show base (not locked or latched) mods\n");
       printf("-w keep watching -- don't exit after getting the initial state\n");
       return 0;
     }
@@ -116,7 +142,7 @@ int main(int argc, char **argv) {
 
   // print initial status
   XkbGetState(disp, XkbUseCoreKbd, &state);
-  displayState(disp, state.latched_mods, state.locked_mods);
+  displayState(disp, state.base_mods, state.latched_mods, state.locked_mods);
 
   if (onlyCurrentStateP){
     exit(0);
@@ -133,7 +159,7 @@ int main(int argc, char **argv) {
   while (1) {
     XNextEvent(disp, &ev.core);
     if (ev.type == xkb_event_base && ev.any.xkb_type == XkbStateNotify) {
-      displayState(disp, ev.state.latched_mods, ev.state.locked_mods);
+      displayState(disp, ev.state.base_mods, ev.state.latched_mods, ev.state.locked_mods);
     }
   }
   return 0;
