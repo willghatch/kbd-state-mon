@@ -34,6 +34,9 @@ static Bool onlyCurrentStateP = True;
 static Bool showLocks = True;
 static Bool showLatches = True;
 static Bool showBaseMods = False;
+static unsigned int last_bmods = -1;
+static int last_latch = -1;
+static int last_lock = -1;
 
 void displayState(Display *d,
                   unsigned int bmods,
@@ -143,6 +146,9 @@ int main(int argc, char **argv) {
   // print initial status
   XkbGetState(disp, XkbUseCoreKbd, &state);
   displayState(disp, state.base_mods, state.latched_mods, state.locked_mods);
+  last_bmods = state.base_mods;
+  last_latch = state.latched_mods;
+  last_lock = state.locked_mods;
 
   if (onlyCurrentStateP){
     exit(0);
@@ -159,7 +165,15 @@ int main(int argc, char **argv) {
   while (1) {
     XNextEvent(disp, &ev.core);
     if (ev.type == xkb_event_base && ev.any.xkb_type == XkbStateNotify) {
-      displayState(disp, ev.state.base_mods, ev.state.latched_mods, ev.state.locked_mods);
+      // update if things we care about showing have changed
+      if((showBaseMods && ev.state.base_mods != last_bmods)
+         || (showLatches && ev.state.latched_mods != last_latch)
+         || (showLocks && ev.state.locked_mods != last_lock)) {
+        displayState(disp, ev.state.base_mods, ev.state.latched_mods, ev.state.locked_mods);
+        last_bmods = ev.state.base_mods;
+        last_latch = ev.state.latched_mods;
+        last_lock = ev.state.locked_mods;
+      }
     }
   }
   return 0;
